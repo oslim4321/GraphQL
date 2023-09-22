@@ -1,10 +1,9 @@
-import {projects, clients} from '../sampleData.js'
 // mongoose models
 import Client from '../server/model/Client.js'
 import Project from '../server/model/Project.js'
 
 
-import {GraphQLObjectType, GraphQLID,GraphQLString, GraphQLSchema, GraphQLList} from 'graphql'
+import {GraphQLObjectType, GraphQlEnumType, GraphQLNonNull, GraphQLID,GraphQLString, GraphQLSchema, GraphQLList } from 'graphql'
 
 // skeleton
 const projectType = new GraphQLObjectType({
@@ -69,6 +68,59 @@ const RootQuery = new GraphQLObjectType({
         }
     }
 })
+// mutation
+const myMutation = new GraphQLObjectType({
+    name: 'Mutation',
+    fields:{
+        //  add client side
+        addClient:{
+            type: ClientsTypes,
+            args: {
+                name:{type: GraphQLNonNull(GraphQLString)},
+                email:{type: GraphQLNonNull(GraphQLString)},
+                phone:{type: GraphQLNonNull(GraphQLString)},
+            },
+            resolve(_, args){
+                const {name, email, phone} = args
+                const clients = Client.create({name,email,phone})
+                return clients
+            }
+        },
+        // delete client
+        deleteClient:{
+            type: ClientsTypes,
+            args:{id:{type: GraphQLNonNull(GraphQLID)}}, 
+            resolve(_, args){
+                return Client.findByIdAndDelete(args.id)
+            }
+        },
+        // add project
+        addProject:{
+            type: projectType,
+            args: {
+                name:{type: GraphQLNonNull(GraphQLString)},
+                description:{type:GraphQLNonNull(GraphQLString)},
+                clientId:{type:GraphQLNonNull(GraphQLID)},
+                status: new GraphQlEnumType({
+                    name: 'projectStatus',
+                    values:{
+                        'new':{value: 'Not Started'},
+                        'progress':{value: 'In Progress'},
+                        'completed':{value: 'Completed'},
+                    }
+                }),
+                defaultValue: 'Not Started'
+            },
+            resolve(_,args){
+                const {name, description, clientId, status} = args
+                const project =  Project.create({name, description, clientId, status})
+                return project
+            }
+        }
+
+    }
+})
 export default new GraphQLSchema({
-    query:RootQuery
+    query:RootQuery,
+    mutation:myMutation
 })
